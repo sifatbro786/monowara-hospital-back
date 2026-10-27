@@ -29,6 +29,9 @@ import adminUploads from "./modules/uploads/routes.js";
 import { applicationsRouter, bookingsRouter, messagesRouter } from "./modules/inbox/routes.js";
 import adminStats from "./modules/stats/routes.js";
 import adminDoctors from "./modules/doctors/admin.routes.js";
+import adminDepartments from "./modules/departments/admin.routes.js";
+import adminFacilities from "./modules/facilities/admin.routes.js";
+import adminDiagnostics from "./modules/diagnostics/admin.routes.js";
 
 const api = Router();
 
@@ -77,8 +80,11 @@ admin.use("/bookings", bookingsRouter);
 admin.use("/applications", applicationsRouter);
 admin.use("/stats", adminStats);
 admin.use("/doctors", adminDoctors);
+admin.use("/departments", adminDepartments);
+admin.use("/facilities", adminFacilities);
+admin.use("/diagnostics", adminDiagnostics);
 api.use("/admin", noStore, csrfGuard, admin);
 
-// B2.3+: admin CRUD per content module — doctors done; departments, packages, hero, settings… next
+// B2.3+: admin CRUD per content module — doctors, departments/facilities/diagnostics done; packages, settings… next
 
 export default api;
