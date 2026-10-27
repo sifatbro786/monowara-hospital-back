@@ -14,7 +14,7 @@
         "seed": "node --env-file-if-exists=.env --no-warnings scripts/seed.mjs",
         "check": "node scripts/check-syntax.mjs",
         "create-admin": "node --env-file-if-exists=.env --no-warnings scripts/create-admin.mjs",
-        "test": "node --no-warnings test/parity.test.mjs && node --no-warnings test/auth.test.mjs && node --no-warnings test/forms-uploads.test.mjs"
+        "test": "node --no-warnings test/parity.test.mjs && node --no-warnings test/auth.test.mjs && node --no-warnings test/forms-uploads.test.mjs && node --no-warnings test/doctors-admin.test.mjs"
     },
     "dependencies": {
         "bcryptjs": "3.0.3",

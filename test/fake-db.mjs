@@ -125,6 +125,12 @@ class FakeCollection {
         const out = project(opts.returnDocument === "after" ? d : before, opts.projection);
         return opts.includeResultMetadata ? { value: out, ok: 1, lastErrorObject: { updatedExisting: true } } : out;
     }
+    async deleteOne(filter) {
+        const d = this.match(filter)[0];
+        if (!d) return { acknowledged: true, deletedCount: 0 };
+        this.rows = this.rows.filter((r) => r !== d);
+        return { acknowledged: true, deletedCount: 1 };
+    }
     async deleteMany(filter) {
         const keep = this.rows.filter((r) => !sift(filter || {})(r));
         const n = this.rows.length - keep.length;

@@ -27,6 +27,8 @@ import { csrfGuard, noStore } from "./middlewares/csrf.js";
 import forms from "./modules/forms/routes.js";
 import adminUploads from "./modules/uploads/routes.js";
 import { applicationsRouter, bookingsRouter, messagesRouter } from "./modules/inbox/routes.js";
+import adminStats from "./modules/stats/routes.js";
+import adminDoctors from "./modules/doctors/admin.routes.js";
 
 const api = Router();
 
@@ -73,8 +75,10 @@ admin.use("/uploads", adminUploads);
 admin.use("/messages", messagesRouter);
 admin.use("/bookings", bookingsRouter);
 admin.use("/applications", applicationsRouter);
+admin.use("/stats", adminStats);
+admin.use("/doctors", adminDoctors);
 api.use("/admin", noStore, csrfGuard, admin);
 
-// B2: admin CRUD per content module (doctors, departments, packages, hero, settings…)
+// B2.3+: admin CRUD per content module — doctors done; departments, packages, hero, settings… next
 
 export default api;
