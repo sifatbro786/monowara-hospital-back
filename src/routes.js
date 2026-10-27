@@ -32,6 +32,13 @@ import adminDoctors from "./modules/doctors/admin.routes.js";
 import adminDepartments from "./modules/departments/admin.routes.js";
 import adminFacilities from "./modules/facilities/admin.routes.js";
 import adminDiagnostics from "./modules/diagnostics/admin.routes.js";
+import adminPackages from "./modules/packages/admin.routes.js";
+import adminSettings from "./modules/settings/admin.routes.js";
+import adminHero from "./modules/hero/admin.routes.js";
+import adminMedia from "./modules/media/admin.routes.js";
+import { centresRouter, keyNumbersRouter, storiesRouter, talksRouter } from "./modules/home/admin.routes.js";
+import adminFaqs from "./modules/faqs/admin.routes.js";
+import adminJobs from "./modules/jobs/admin.routes.js";
 
 const api = Router();
 
@@ -83,8 +90,18 @@ admin.use("/doctors", adminDoctors);
 admin.use("/departments", adminDepartments);
 admin.use("/facilities", adminFacilities);
 admin.use("/diagnostics", adminDiagnostics);
+admin.use("/packages", adminPackages);
+admin.use("/settings", adminSettings);
+admin.use("/hero", adminHero);
+admin.use("/media", adminMedia);
+admin.use("/keynumbers", keyNumbersRouter);
+admin.use("/centres", centresRouter);
+admin.use("/talks", talksRouter);
+admin.use("/stories", storiesRouter);
+admin.use("/faqs", adminFaqs);
+admin.use("/jobs", adminJobs);
 api.use("/admin", noStore, csrfGuard, admin);
 
-// B2.3+: admin CRUD per content module — doctors, departments/facilities/diagnostics done; packages, settings… next
+// B2.3–B2.9 admin modules. Next: Aesthetic/BHRPC, articles, gallery, pages, SEO (B2.10+)
 
 export default api;

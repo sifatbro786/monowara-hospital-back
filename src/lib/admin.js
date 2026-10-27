@@ -96,3 +96,44 @@ export const onLeaveToday = () => {
     const today = dhakaTodayStart();
     return { "leave.until": { $gte: today }, $or: [{ "leave.from": null }, { "leave.from": { $lte: today } }] };
 };
+
+/** "2026-11-30" (Dhaka calendar day) → Date at Dhaka midnight; null clears. */
+export const zDay = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "pick a date")
+    .transform((d) => new Date(`${d}T00:00:00+06:00`))
+    .nullable();
+
+/** Internal site path ("/departments/cardiology", "/packages?category=maternity", "/contact#map"). */
+export const zPath = z.string().trim().max(200).regex(/^\/[\w\-/?=&#.%]*$/, "an internal link starting with /");
+
+/** Absolute https URL (optionally restricted to hosts). Empty string → null. */
+export const zUrl = (hosts) =>
+    z
+        .string()
+        .trim()
+        .max(500)
+        .transform((v) => v || null)
+        .nullable()
+        .refine((v) => {
+            if (v === null) return true;
+            try {
+                const u = new URL(v);
+                if (u.protocol !== "https:") return false;
+                return !hosts || hosts.some((h) => u.hostname === h || u.hostname.endsWith(`.${h}`));
+            } catch {
+                return false;
+            }
+        }, hosts ? `an https link on ${hosts.join(" / ")}` : "an https:// link");
+
+/** CSS object-position: "center", "72% center", "50% 30%". */
+export const zPosition = z.string().trim().max(30).regex(/^[a-z0-9%. ]+$/i, "e.g. center or 70% 30%");
+
+/** Phone as typed by staff: digits, spaces, dashes, optional +. Empty → null. */
+export const zPhone = z
+    .string()
+    .trim()
+    .max(20)
+    .transform((v) => v || null)
+    .nullable()
+    .refine((v) => v === null || /^\+?[0-9\-\s]{5,20}$/.test(v), "digits only, e.g. 01712-345678");

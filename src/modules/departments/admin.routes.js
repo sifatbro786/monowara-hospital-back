@@ -4,6 +4,7 @@ import { zBool, zImage, zL, zLRequired, zOrder } from "../../lib/admin.js";
 import { Department } from "./model.js";
 import { Doctor } from "../doctors/model.js";
 import { Package } from "../packages/model.js";
+import { Centre } from "../home/model.js";
 
 // /api/admin/departments — specialties (departments.manage: OPD in-charge + super admin)
 export const fields = {
@@ -28,10 +29,11 @@ export default crudRouter({
     query: { featured: z.enum(["true"]).optional() },
     filter: ({ featured }) => (featured ? { isFeatured: true } : {}),
     async inUse(doc) {
-        const [doctors, packages] = await Promise.all([
+        const [doctors, packages, centres] = await Promise.all([
             Doctor.countDocuments({ department: doc._id }),
             Package.countDocuments({ departments: doc._id }),
+            Centre.countDocuments({ href: { $regex: `^/departments/${doc.slug}(?:[?#/]|$)` } }),
         ]);
-        return [doctors && `${doctors} doctor(s)`, packages && `${packages} package(s)`].filter(Boolean);
+        return [doctors && `${doctors} doctor(s)`, packages && `${packages} package(s)`, centres && `${centres} homepage centre link(s)`].filter(Boolean);
     },
 });
