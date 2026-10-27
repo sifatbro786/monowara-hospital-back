@@ -20,3 +20,4 @@ export { User } from "./modules/users/model.js";
 export { Session } from "./modules/auth/session.model.js";
 export { Activity } from "./modules/activity/model.js";
 export { Message, Application, Booking } from "./modules/inbox/models.js";
+export { TapStat } from "./modules/events/model.js";

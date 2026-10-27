@@ -35,6 +35,7 @@ import { logActivity } from "../modules/activity/service.js";
  * @param {(doc: object) => Promise<string[]>} [o.inUse]
  * @param {(body: object, req, doc?) => Promise<void>} [o.check]   cross-collection checks (create + patch)
  * @param {(doc, body: object, req) => void} [o.beforeSave]       server-owned fields (e.g. consent.recordedBy)
+ * @param {object} [o.sort]           list order (default { order: 1, _id: 1 })
  */
 export function crudRouter({
     Model,
@@ -52,6 +53,7 @@ export function crudRouter({
     inUse,
     check,
     beforeSave,
+    sort = { order: 1, _id: 1 },
 }) {
     const router = Router();
     router.use(requirePermission(permission));
@@ -89,7 +91,7 @@ export function crudRouter({
             }
             const f = { $and: and };
             const [items, total] = await Promise.all([
-                Model.find(f).sort({ order: 1, _id: 1 }).skip((page - 1) * limit).limit(limit).lean(),
+                Model.find(f).sort(sort).skip((page - 1) * limit).limit(limit).lean(),
                 Model.countDocuments(f),
             ]);
             ok(res, { items, total, page, limit });

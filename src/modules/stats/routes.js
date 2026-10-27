@@ -6,6 +6,8 @@ import { ok } from "../../lib/public.js";
 import { validate } from "../../middlewares/validate.js";
 import { Booking, Message, Application, BOOKING_STATUSES, APPLICATION_STATUSES } from "../inbox/models.js";
 import { Doctor } from "../doctors/model.js";
+import { TapStat } from "../events/model.js";
+import { Settings, SETTINGS_ID } from "../settings/model.js";
 
 // Mounted at /api/admin/stats (requireAuth applied). Each block only for roles that hold the matching
 // permission — a marketer gets `{}`. Small windows, plain finds with projections (no aggregation
@@ -77,6 +79,36 @@ router.get(
                 Doctor.countDocuments({ isActive: { $ne: false }, schedule: { $size: 0 }, scheduleNote: null }),
             ]);
             out.doctors = { active, hidden, onLeave, noPhoto, noBmdc, noSchedule };
+        }
+        // Contact taps (WhatsApp / call buttons) — marketing + super admin
+        if (can(role, "seo.manage") || can(role, "settings.manage")) {
+            const first = dhakaDay(since);
+            const [rows, settings] = await Promise.all([
+                TapStat.find({ day: { $gte: first } }).lean(),
+                Settings.findById(SETTINGS_ID, { whatsappNumbers: 1 }).lean(),
+            ]);
+            const desks = new Map((settings?.whatsappNumbers ?? []).map((w) => [w._id, w.label?.en || w._id]));
+            const sum = (m, k, n) => m.set(k, (m.get(k) ?? 0) + n);
+            const perDay = new Map(), wa = new Map(), call = new Map(), sections = new Map();
+            let whatsapp = 0, calls = 0;
+            for (const r of rows) {
+                sum(perDay, r.day, r.count);
+                sum(sections, r.section, r.count);
+                if (r.channel === "whatsapp") (whatsapp += r.count), sum(wa, r.target, r.count);
+                else (calls += r.count), sum(call, r.target, r.count);
+            }
+            const top = (m, label = (k) => k) =>
+                [...m].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, count]) => ({ key: k, label: label(k), count }));
+            const daily = series([], days).map((d) => ({ ...d, count: perDay.get(d.day) ?? 0 }));
+            out.taps = {
+                total: whatsapp + calls,
+                whatsapp,
+                calls,
+                daily,
+                byDesk: top(wa, (k) => desks.get(k) ?? (/^\d+$/.test(k) ? `WhatsApp ${k}` : k)),
+                byNumber: top(call, (k) => (k.startsWith("880") ? `0${k.slice(3)}` : k)),
+                bySection: top(sections),
+            };
         }
         ok(res, out);
     },

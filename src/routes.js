@@ -22,7 +22,7 @@ import { aestheticRouter, bhrpcRouter } from "./modules/programs/routes.js";
 import auth from "./modules/auth/routes.js";
 import adminUsers from "./modules/users/routes.js";
 import adminActivity from "./modules/activity/routes.js";
-import { requireAuth } from "./middlewares/auth.js";
+import { requireAuth, requirePermission } from "./middlewares/auth.js";
 import { csrfGuard, noStore } from "./middlewares/csrf.js";
 import forms from "./modules/forms/routes.js";
 import adminUploads from "./modules/uploads/routes.js";
@@ -39,6 +39,13 @@ import adminMedia from "./modules/media/admin.routes.js";
 import { centresRouter, keyNumbersRouter, storiesRouter, talksRouter } from "./modules/home/admin.routes.js";
 import adminFaqs from "./modules/faqs/admin.routes.js";
 import adminJobs from "./modules/jobs/admin.routes.js";
+import adminPrograms from "./modules/programs/admin.routes.js";
+import adminArticles, { articleOptions } from "./modules/articles/admin.routes.js";
+import adminGallery from "./modules/gallery/admin.routes.js";
+import adminManagement from "./modules/management/admin.routes.js";
+import adminPages from "./modules/pages/admin.routes.js";
+import adminSeo, { seoPaths } from "./modules/seo/admin.routes.js";
+import events from "./modules/events/routes.js";
 
 const api = Router();
 
@@ -50,6 +57,9 @@ api.get("/health", (req, res) => {
 
 // ── Public forms (POST, no auth): /contact, /appointments, /careers/apply ─────────────────────────
 api.use(noStore, forms);
+
+// ── Contact-tap beacons from the site (no personal data, always 204) ─────────────────────────────
+api.use("/events", noStore, events);
 
 // ── Public read API (GET only) — contract: mh-front/docs/API_CONTRACT.md ─────────────────────────
 const pub = Router();
@@ -100,8 +110,16 @@ admin.use("/talks", talksRouter);
 admin.use("/stories", storiesRouter);
 admin.use("/faqs", adminFaqs);
 admin.use("/jobs", adminJobs);
+admin.use("/programs", adminPrograms);
+admin.get("/articles/options", requirePermission("articles.manage"), articleOptions); // before /:id
+admin.use("/articles", adminArticles);
+admin.use("/gallery", adminGallery);
+admin.use("/management", adminManagement);
+admin.use("/pages", adminPages);
+admin.get("/seo/paths", requirePermission("seo.manage"), seoPaths); // before the CRUD router's /:id
+admin.use("/seo", adminSeo);
 api.use("/admin", noStore, csrfGuard, admin);
 
-// B2.3–B2.9 admin modules. Next: Aesthetic/BHRPC, articles, gallery, pages, SEO (B2.10+)
+// B2 admin modules complete (B2.3–B2.13). B3: revalidateTag on save.
 
 export default api;

@@ -102,8 +102,16 @@ class FakeCollection {
     async estimatedDocumentCount() {
         return this.rows.length;
     }
-    async updateOne(filter, upd) {
+    async updateOne(filter, upd, opts = {}) {
         const d = this.match(filter)[0];
+        if (!d && opts.upsert) {
+            // upsert: equality fields of the filter + $setOnInsert + the update itself
+            const doc = Object.fromEntries(Object.entries(filter).filter(([k, v]) => !k.startsWith("$") && (v === null || typeof v !== "object")));
+            Object.assign(doc, upd.$setOnInsert ?? {});
+            applyUpdate(doc, upd);
+            await this.insertOne(doc);
+            return { acknowledged: true, matchedCount: 0, modifiedCount: 0, upsertedCount: 1 };
+        }
         if (!d) return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
         const copy = structuredClone(d);
         applyUpdate(copy, upd);
