@@ -24,5 +24,6 @@ export const corsPolicy = cors({
     credentials: true, // admin auth cookies (B1.3)
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Accept", "X-Requested-With"],
+    exposedHeaders: ["Content-Disposition"], // admin Excel/CV downloads read the file name
     maxAge: 600,
 });

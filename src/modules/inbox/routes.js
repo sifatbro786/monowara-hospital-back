@@ -7,6 +7,7 @@ import { notFound } from "../../lib/errors.js";
 import { ok } from "../../lib/public.js";
 import { PRIVATE_ROOT, safeCell, within } from "../../lib/files.js";
 import { logActivity } from "../activity/service.js";
+import { User } from "../users/model.js";
 import {
     Application,
     APPLICATION_STATUSES,
@@ -21,6 +22,15 @@ const idParams = z.object({ id: z.string().regex(/^[a-f0-9]{24}$/, "invalid id")
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const dhaka = (d) =>
     d ? new Date(new Date(d).getTime() + 6 * 3600_000).toISOString().slice(0, 16).replace("T", " ") : "";
+
+/** Adds `handledByName` (staff name) so the OPD desk sees who touched an entry — ids stay as stored. */
+async function withHandlerNames(docs) {
+    const ids = [...new Set(docs.map((d) => d.handledBy).filter(Boolean))];
+    if (!ids.length) return docs;
+    const users = await User.find({ _id: { $in: ids } }, { name: 1 }).lean();
+    const names = new Map(users.map((u) => [u._id, u.name]));
+    return docs.map((d) => (d.handledBy ? { ...d, handledByName: names.get(d.handledBy) ?? null } : d));
+}
 
 /**
  * One factory for the three staff inboxes (messages, applications, bookings):
@@ -63,7 +73,7 @@ function inboxRouter({ Model, entity, permission, statuses, searchFields, extraQ
             // badge counts for the dashboard tabs
             Promise.all(statuses.map(async (s) => [s, await Model.countDocuments({ status: s })])),
         ]);
-        ok(res, { items, total, page: q.page, limit: q.limit, counts: Object.fromEntries(counts) });
+        ok(res, { items: await withHandlerNames(items), total, page: q.page, limit: q.limit, counts: Object.fromEntries(counts) });
     });
 
     router.get("/export.xlsx", validate({ query: listQuery.omit({ page: true, limit: true }) }), async (req, res) => {
@@ -87,7 +97,7 @@ function inboxRouter({ Model, entity, permission, statuses, searchFields, extraQ
     router.get("/:id", validate({ params: idParams }), async (req, res) => {
         const doc = await Model.findById(req.valid.params.id).lean();
         if (!doc) throw notFound();
-        ok(res, doc);
+        ok(res, (await withHandlerNames([doc]))[0]);
     });
 
     router.patch(
@@ -119,7 +129,7 @@ function inboxRouter({ Model, entity, permission, statuses, searchFields, extraQ
                 await doc.save();
                 await logActivity(req, { action: `${entity}.update`, entity, entityId: doc._id, summary: doc.name, changes });
             }
-            ok(res, doc.toObject());
+            ok(res, (await withHandlerNames([doc.toObject()]))[0]);
         },
     );
 

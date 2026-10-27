@@ -16,10 +16,13 @@ const base = () => ({
 });
 
 export function setAuthCookies(res, { accessToken, refreshToken, sessionExpiresAt }) {
+    // Cookie outlives the 10-min JWT on purpose: an expired token must still reach the API so it can
+    // answer 401 TOKEN_EXPIRED (→ silent refresh). With Max-Age = TTL the browser dropped the cookie at
+    // expiry, the API saw no cookie (AUTH_REQUIRED) and staff were signed out every 10 minutes.
     res.cookie(ACCESS_COOKIE, accessToken, {
         ...base(),
         path: "/api",
-        maxAge: env.ACCESS_TOKEN_TTL_MIN * 60_000,
+        expires: new Date(sessionExpiresAt),
     });
     res.cookie(REFRESH_COOKIE, refreshToken, {
         ...base(),

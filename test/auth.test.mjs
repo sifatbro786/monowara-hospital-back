@@ -110,6 +110,10 @@ check("super admin login (email trimmed/lowercased) → 200", r.status === 200 &
 const atCookie = sa.raw.find((c) => c.startsWith("mh_at="));
 const rtCookie = sa.raw.find((c) => c.startsWith("mh_rt="));
 check("access cookie HttpOnly; SameSite=Strict; Path=/api", /HttpOnly/i.test(atCookie) && /SameSite=Strict/i.test(atCookie) && /Path=\/api(;|$)/.test(atCookie), atCookie);
+{
+    const exp = Date.parse(/Expires=([^;]+)/i.exec(atCookie)?.[1] ?? "");
+    check("access cookie outlives the JWT (expired token still reaches the API → TOKEN_EXPIRED)", exp - Date.now() > 24 * 3600_000 && !/Max-Age=600\b/.test(atCookie), atCookie);
+}
 check("refresh cookie scoped to Path=/api/auth", /Path=\/api\/auth/.test(rtCookie) && /HttpOnly/i.test(rtCookie), rtCookie);
 check("no password hash / counters in response", !JSON.stringify(r.body).match(/passwordHash|failedLogins|tokenVersion/));
 check("Cache-Control: no-store on auth", r.headers.get("cache-control") === "no-store");
