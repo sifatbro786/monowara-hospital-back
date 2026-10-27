@@ -1,0 +1,31 @@
+{
+    "name": "mh-back",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Monowara Hospital API (Express + MongoDB) — serves mh-front and the admin dashboard",
+    "type": "module",
+    "main": "src/server.js",
+    "engines": {
+        "node": ">=22.12"
+    },
+    "scripts": {
+        "dev": "node --watch --env-file-if-exists=.env src/server.js",
+        "start": "node --env-file-if-exists=.env src/server.js",
+        "seed": "node --env-file-if-exists=.env --no-warnings scripts/seed.mjs",
+        "check": "node scripts/check-syntax.mjs"
+    },
+    "dependencies": {
+        "cors": "2.8.5",
+        "express": "^5.3.0",
+        "express-rate-limit": "8.1.0",
+        "helmet": "8.1.0",
+        "mongoose": "^9.11.4",
+        "pino": "9.13.1",
+        "pino-http": "10.5.0",
+        "zod": "4.1.12"
+    },
+    "devDependencies": {
+        "esbuild": "0.25.10",
+        "pino-pretty": "13.1.2"
+    }
+}
