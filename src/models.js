@@ -16,3 +16,7 @@ export { Job } from "./modules/jobs/model.js";
 export { Aesthetic, Bhrpc } from "./modules/programs/model.js";
 export { MediaSlot } from "./modules/media/model.js";
 export { SeoOverride } from "./modules/seo/model.js";
+export { User } from "./modules/users/model.js";
+export { Session } from "./modules/auth/session.model.js";
+export { Activity } from "./modules/activity/model.js";
+export { Message, Application, Booking } from "./modules/inbox/models.js";

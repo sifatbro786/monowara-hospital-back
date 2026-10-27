@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import { pinoHttp } from "pino-http";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
@@ -6,6 +7,7 @@ import { securityHeaders, corsPolicy } from "./middlewares/security.js";
 import { sanitizeInput } from "./middlewares/sanitize.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error.js";
 import api from "./routes.js";
+import { UPLOAD_ROOT } from "./lib/files.js";
 
 export function createApp() {
     const app = express();
@@ -30,7 +32,13 @@ export function createApp() {
     app.use(securityHeaders);
     app.use(corsPolicy);
     app.use(express.json({ limit: "100kb" }));
+    app.use(cookieParser()); // unsigned: integrity comes from the JWT signature / hashed refresh secret
     app.use(sanitizeInput);
+
+    // Dev only — on the VPS Nginx serves /uploads straight from disk.
+    if (env.SERVE_UPLOADS) {
+        app.use("/uploads", express.static(UPLOAD_ROOT, { index: false, dotfiles: "deny", maxAge: "1h", fallthrough: false }));
+    }
 
     app.use("/api", api);
 

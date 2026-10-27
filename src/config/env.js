@@ -38,6 +38,43 @@ const schema = z.object({
         .or(z.literal("").transform(() => undefined)),
 
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+
+    // ── Admin auth (B1.3) ──
+    // HS256 secret for the short-lived access JWT. Generate: node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+    JWT_ACCESS_SECRET: z.string().min(32, "use at least 32 random characters"),
+    ACCESS_TOKEN_TTL_MIN: z.coerce.number().int().min(1).max(60).default(10),
+    SESSION_IDLE_MIN: z.coerce.number().int().min(5).max(24 * 60).default(30), // auto logout after inactivity
+    SESSION_MAX_DAYS: z.coerce.number().int().min(1).max(30).default(7), // absolute session lifetime
+    LOGIN_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(20).default(5), // per account, then lock
+    LOGIN_LOCK_MIN: z.coerce.number().int().min(1).max(24 * 60).default(15),
+    // Host-only cookies on the API host by default. Set ".monowarahospital.com" only if the Next
+    // server must read the session cookie (e.g. server-side admin route guard).
+    COOKIE_DOMAIN: z.string().optional().or(z.literal("").transform(() => undefined)),
+    // Secure cookies (HTTPS only). Defaults to true in production.
+    COOKIE_SECURE: z
+        .enum(["true", "false"])
+        .optional()
+        .transform((v) => (v === undefined ? undefined : v === "true")),
+
+    // ── Files (B1.4) ──
+    // Public images. VPS: /var/www/mh/uploads (Nginx serves it at https://monowarahospital.com/uploads/).
+    UPLOAD_DIR: z.string().default("./uploads"),
+    // Private files (CVs). NEVER inside a web-served folder. VPS: /var/www/mh/private
+    PRIVATE_DIR: z.string().default("./private"),
+    // Dev only: let the API serve UPLOAD_DIR at /uploads (on the VPS Nginx does it).
+    SERVE_UPLOADS: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
+    UPLOAD_MAX_MB: z.coerce.number().positive().max(25).default(10),
+    CV_MAX_MB: z.coerce.number().positive().max(15).default(5),
+
+    // ── Mail (B1.4) — alerts are skipped (and logged) when SMTP_HOST is empty ──
+    SMTP_HOST: z.string().optional().or(z.literal("").transform(() => undefined)),
+    SMTP_PORT: z.coerce.number().int().default(465),
+    SMTP_SECURE: z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    MAIL_FROM: z.string().optional(), // default: "Monowara Hospital Website <SMTP_USER>"
+    ADMIN_EMAIL: csv(""), // alert recipients, comma-separated
+    ADMIN_URL: z.string().url().optional().or(z.literal("").transform(() => undefined)), // link in alerts
 });
 
 const parsed = schema.safeParse(process.env);
@@ -47,7 +84,10 @@ if (!parsed.success) {
     process.exit(1);
 }
 
+const isProd = parsed.data.NODE_ENV === "production";
+
 export const env = Object.freeze({
     ...parsed.data,
-    isProd: parsed.data.NODE_ENV === "production",
+    isProd,
+    COOKIE_SECURE: parsed.data.COOKIE_SECURE ?? isProd,
 });

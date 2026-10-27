@@ -19,6 +19,14 @@ import jobs from "./modules/jobs/routes.js";
 import media from "./modules/media/routes.js";
 import seo from "./modules/seo/routes.js";
 import { aestheticRouter, bhrpcRouter } from "./modules/programs/routes.js";
+import auth from "./modules/auth/routes.js";
+import adminUsers from "./modules/users/routes.js";
+import adminActivity from "./modules/activity/routes.js";
+import { requireAuth } from "./middlewares/auth.js";
+import { csrfGuard, noStore } from "./middlewares/csrf.js";
+import forms from "./modules/forms/routes.js";
+import adminUploads from "./modules/uploads/routes.js";
+import { applicationsRouter, bookingsRouter, messagesRouter } from "./modules/inbox/routes.js";
 
 const api = Router();
 
@@ -27,6 +35,9 @@ api.get("/health", (req, res) => {
     const db = isDbUp();
     res.status(db ? 200 : 503).json({ data: { status: db ? "ok" : "degraded", db, uptime: Math.round(process.uptime()) } });
 });
+
+// ── Public forms (POST, no auth): /contact, /appointments, /careers/apply ─────────────────────────
+api.use(noStore, forms);
 
 // ── Public read API (GET only) — contract: mh-front/docs/API_CONTRACT.md ─────────────────────────
 const pub = Router();
@@ -51,6 +62,19 @@ pub.use("/media", media);
 pub.use("/seo", seo);
 api.use(pub);
 
-// B1.3: /auth, /admin/* (RBAC) · B1.4: /uploads, /forms/*
+// ── Staff auth + admin (cookie sessions, CSRF guard, never cached) ──────────────────────────────
+api.use("/auth", noStore, csrfGuard, auth);
+
+const admin = Router();
+admin.use(requireAuth()); // every /api/admin route needs a signed-in staff user; permission per router
+admin.use("/users", adminUsers);
+admin.use("/activity", adminActivity);
+admin.use("/uploads", adminUploads);
+admin.use("/messages", messagesRouter);
+admin.use("/bookings", bookingsRouter);
+admin.use("/applications", applicationsRouter);
+api.use("/admin", noStore, csrfGuard, admin);
+
+// B2: admin CRUD per content module (doctors, departments, packages, hero, settings…)
 
 export default api;

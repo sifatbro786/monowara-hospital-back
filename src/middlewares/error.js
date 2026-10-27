@@ -36,6 +36,18 @@ export function errorHandler(err, req, res, _next) {
     } else if (err?.code === 11000) {
         status = 409;
         body = { code: "DUPLICATE", message: `Already exists: ${Object.keys(err.keyValue || {}).join(", ")}.` };
+    } else if (err?.name === "MulterError") {
+        const big = err.code === "LIMIT_FILE_SIZE";
+        status = big ? 413 : 400;
+        body = {
+            code: big ? "FILE_TOO_LARGE" : "BAD_UPLOAD",
+            message: big ? "File is too large." : `Upload rejected (${err.code}).`,
+        };
+    } else if (err?.status >= 400 && err.status < 500 && !err.type) {
+        // Errors from Express internals (e.g. express.static 404 / dotfile 403) — keep the status,
+        // never the internal message (it can contain file paths).
+        status = err.status;
+        body = { code: status === 404 ? "NOT_FOUND" : "BAD_REQUEST", message: status === 404 ? "Not found" : "Bad request" };
     } else if (err?.type === "entity.parse.failed") {
         status = 400;
         body = { code: "BAD_JSON", message: "Malformed JSON body." };

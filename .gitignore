@@ -6,3 +6,6 @@ uploads/
 logs/
 *.log
 .DS_Store
+private/
+.test-uploads/
+.test-private/

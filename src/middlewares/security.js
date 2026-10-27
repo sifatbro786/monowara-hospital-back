@@ -9,7 +9,8 @@ export const securityHeaders = helmet({
     crossOriginResourcePolicy: { policy: "same-site" },
 });
 
-const allowed = new Set(env.CORS_ORIGINS);
+export const allowedOrigins = new Set(env.CORS_ORIGINS);
+const allowed = allowedOrigins;
 
 /**
  * Browser calls (admin dashboard, public forms) must come from an allow-listed origin.

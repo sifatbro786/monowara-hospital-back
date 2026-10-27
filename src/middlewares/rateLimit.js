@@ -37,5 +37,12 @@ export const publicLimiter = rateLimit({
 });
 
 /** Factory for the stricter per-route limiters (login, contact form, CV upload…). */
-export const strictLimiter = ({ windowMs, limit }) =>
-    rateLimit({ windowMs, limit, standardHeaders: "draft-8", legacyHeaders: false, handler: tooMany });
+export const strictLimiter = ({ windowMs, limit, skipSuccessfulRequests = false }) =>
+    rateLimit({
+        windowMs,
+        limit,
+        skipSuccessfulRequests, // count only failures (e.g. many staff signing in from one office IP)
+        standardHeaders: "draft-8",
+        legacyHeaders: false,
+        handler: tooMany,
+    });
