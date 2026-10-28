@@ -122,7 +122,6 @@ function singleton(path, Model, id, body, entity, check) {
         if (Object.keys(changes).length) {
             await doc.save();
             await logActivity(req, { action: `${path}.update`, entity: path, entityId: id, summary: Object.keys(changes).join(", "), changes });
-            // B3: revalidateTag(path)
         }
         ok(res, doc.toObject());
     });

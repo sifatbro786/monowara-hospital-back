@@ -40,7 +40,6 @@ router.patch(
         if (Object.keys(changes).length) {
             await doc.save();
             await logActivity(req, { action: "media.update", entity: "media", entityId: doc._id, summary: doc.key, changes });
-            // B3: revalidateTag("media")
         }
         ok(res, doc.toObject());
     },

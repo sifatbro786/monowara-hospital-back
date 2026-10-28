@@ -46,6 +46,7 @@ import adminManagement from "./modules/management/admin.routes.js";
 import adminPages from "./modules/pages/admin.routes.js";
 import adminSeo, { seoPaths } from "./modules/seo/admin.routes.js";
 import events from "./modules/events/routes.js";
+import { revalidateOnSave } from "./lib/revalidate.js";
 
 const api = Router();
 
@@ -89,6 +90,7 @@ api.use("/auth", noStore, csrfGuard, auth);
 
 const admin = Router();
 admin.use(requireAuth()); // every /api/admin route needs a signed-in staff user; permission per router
+admin.use(revalidateOnSave); // 2xx writes → public site cache tags (src/lib/revalidate.js)
 admin.use("/users", adminUsers);
 admin.use("/activity", adminActivity);
 admin.use("/uploads", adminUploads);
@@ -120,6 +122,5 @@ admin.get("/seo/paths", requirePermission("seo.manage"), seoPaths); // before th
 admin.use("/seo", adminSeo);
 api.use("/admin", noStore, csrfGuard, admin);
 
-// B2 admin modules complete (B2.3–B2.13). B3: revalidateTag on save.
 
 export default api;

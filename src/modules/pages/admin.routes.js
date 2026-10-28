@@ -100,7 +100,6 @@ router.patch("/:id", validate({ params: idParams }), async (req, res) => {
         doc.markModified("sections"); // Mixed section bodies
         await doc.save();
         await logActivity(req, { action: "pages.update", entity: "pages", entityId: doc._id, summary: doc.slug, changes });
-        // B3: revalidateTag("pages"), revalidateTag(`page:${doc.slug}`)
     }
     ok(res, doc.toObject());
 });

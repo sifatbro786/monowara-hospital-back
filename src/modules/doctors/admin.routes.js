@@ -195,7 +195,6 @@ router.post("/", validate({ body: createBody }), async (req, res) => {
     const doc = await Doctor.create({ order: (last?.order ?? 0) + 1, ...body, slug });
 
     await logActivity(req, { action: "doctors.create", entity: "doctors", entityId: doc._id, summary: doc.name.en });
-    // B3: revalidateTag("doctors") here
     res.status(201).json({ data: doc.toObject() });
 });
 
@@ -215,7 +214,6 @@ router.patch("/:id", validate({ params: idParams, body: patchBody }), async (req
     if (Object.keys(changes).length) {
         await doc.save();
         await logActivity(req, { action: "doctors.update", entity: "doctors", entityId: doc._id, summary: doc.name.en, changes });
-        // B3: revalidateTag("doctors"), revalidateTag(`doctor:${doc.slug}`)
     }
     ok(res, doc.toObject());
 });

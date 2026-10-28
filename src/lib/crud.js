@@ -106,7 +106,6 @@ export function crudRouter({
         if (found !== ids.length) throw new AppError(400, "UNKNOWN_ID", "Some entries no longer exist — reload and try again.");
         await Promise.all(ids.map((id, i) => Model.updateOne({ _id: id }, { $set: { order: i + 1 } })));
         await logActivity(req, { action: `${entity}.reorder`, entity, summary: `${ids.length} entries reordered` });
-        // B3: revalidateTag(entity)
         ok(res, { reordered: ids.length });
     });
 
@@ -138,7 +137,6 @@ export function crudRouter({
         beforeSave?.(doc, body, req);
         await doc.save();
         await logActivity(req, { action: `${entity}.create`, entity, entityId: doc._id, summary: label(doc) });
-        // B3: revalidateTag(entity)
         res.status(201).json({ data: doc.toObject() });
     });
 
@@ -157,7 +155,6 @@ export function crudRouter({
             beforeSave?.(doc, rest, req);
             await doc.save();
             await logActivity(req, { action: `${entity}.update`, entity, entityId: doc._id, summary: label(doc), changes });
-            // B3: revalidateTag(entity) (+ the doc's own tag)
         }
         ok(res, doc.toObject());
     });

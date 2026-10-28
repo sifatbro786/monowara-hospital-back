@@ -129,7 +129,6 @@ router.patch("/", requirePermission("settings.manage"), validate({ body: setting
     if (Object.keys(changes).length) {
         await doc.save();
         await logActivity(req, { action: "settings.update", entity: "settings", entityId: doc._id, summary: Object.keys(changes).join(", "), changes });
-        // B3: revalidateTag("settings") — header, footer, every CTA
     }
     ok(res, doc.toObject());
 });

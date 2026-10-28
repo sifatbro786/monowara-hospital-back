@@ -75,9 +75,24 @@ const schema = z.object({
     MAIL_FROM: z.string().optional(), // default: "Monowara Hospital Website <SMTP_USER>"
     ADMIN_EMAIL: csv(""), // alert recipients, comma-separated
     ADMIN_URL: z.string().url().optional().or(z.literal("").transform(() => undefined)), // link in alerts
+
+    // ── Site cache (B3) — admin saves tell the Next server to drop cached pages ──
+    // VPS: http://127.0.0.1:3000/api/revalidate (loopback, no Nginx hop). Empty = no revalidation.
+    SITE_REVALIDATE_URL: z.string().url().optional().or(z.literal("").transform(() => undefined)),
+    // Same value as REVALIDATE_SECRET in mh-front. ≥ 32 random chars.
+    REVALIDATE_SECRET: z
+        .string()
+        .min(32, "use at least 32 random characters")
+        .optional()
+        .or(z.literal("").transform(() => undefined)),
 });
 
-const parsed = schema.safeParse(process.env);
+const parsed = schema
+    .refine((e) => !e.SITE_REVALIDATE_URL || e.REVALIDATE_SECRET, {
+        path: ["REVALIDATE_SECRET"],
+        message: "required when SITE_REVALIDATE_URL is set",
+    })
+    .safeParse(process.env);
 if (!parsed.success) {
     const lines = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`);
     console.error(`Invalid environment:\n${lines.join("\n")}`);
