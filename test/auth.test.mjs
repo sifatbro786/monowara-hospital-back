@@ -149,7 +149,7 @@ r = await mk.call("GET", "/api/admin/users");
 check("marketer → /admin/users 403 FORBIDDEN", r.status === 403 && r.body.error.code === "FORBIDDEN", S(r));
 r = await mk.call("GET", "/api/admin/activity");
 check("marketer → /admin/activity 403", r.status === 403, S(r));
-check("marketer permissions = seo.manage only", (await mk.call("GET", "/api/auth/me")).body.data.permissions.join() === "seo.manage");
+check("marketer permissions = articles + seo", (await mk.call("GET", "/api/auth/me")).body.data.permissions.join() === "articles.manage,seo.manage");
 
 // refresh rotation, race, reuse detection
 const oldRt = mk.jar.get("mh_rt").value;

@@ -107,7 +107,16 @@ check("bhrpc topics + whoFor saved", r.status === 200 && r.body.data.topics.leng
 r = await gfx.call("GET", "/api/admin/articles/options");
 check("graphics → article byline options (doctors)", r.status === 200 && r.body.data.doctors.length > 50 && !("phone" in r.body.data.doctors[0]), S(r));
 r = await mkt.call("GET", "/api/admin/articles/options");
-check("marketer → article options 403", r.status === 403, S(r));
+check("marketer → article byline options 200 (articles.manage since 2026-10-28)", r.status === 200 && r.body.data.doctors.length > 50, S(r));
+r = await mkt.call("GET", "/api/admin/gallery");
+check("marketer → gallery still 403", r.status === 403, S(r));
+{
+    const art = (await mkt.call("GET", "/api/admin/articles?limit=1")).body.data.items[0];
+    r = await mkt.call("PATCH", `/api/admin/articles/${art._id}`, { excerpt: { en: "Marketer-edited excerpt", bn: art.excerpt.bn } });
+    check("marketer edits an article excerpt → 200", r.status === 200 && r.body.data.excerpt.en === "Marketer-edited excerpt", S(r));
+    r = await mkt.call("GET", "/api/admin/doctors");
+    check("marketer → doctors still 403", r.status === 403, S(r));
+}
 r = await gfx.call("GET", "/api/admin/articles");
 check("articles newest first", r.status === 200 && r.body.data.items[0].publishedAt >= r.body.data.items.at(-1).publishedAt, S(r));
 r = await opd.call("GET", "/api/admin/articles");

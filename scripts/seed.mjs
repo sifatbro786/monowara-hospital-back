@@ -4,6 +4,12 @@
  *   npm run seed -- --drop                    # wipe the seeded collections, then insert
  *   npm run seed -- --front ../mh-front       # path to the frontend repo (default: ../mh-front)
  *   npm run seed -- --dry-run                 # validate data/*.js against the models, no DB needed
+ *   npm run seed -- --only seo --add-missing  # = npm run seed:seo — add entries the DB doesn't have yet
+ *
+ * --only <a,b>    limit to these collections (names as in Mongo: seo, faqs, departments…)
+ * --add-missing   insert only documents whose key (_id; for seo also `path`) isn't in the DB yet —
+ *                 existing documents (admin edits) are never touched, nothing is deleted.
+ * After writing, the site is told to drop its cache for those collections (SITE_REVALIDATE_URL).
  *
  * Safety:
  *  - Refuses to touch non-empty collections unless --drop (admin edits are never overwritten by accident).
@@ -23,6 +29,8 @@ const { values: args } = parseArgs({
         "dry-run": { type: "boolean", default: false },
         production: { type: "boolean", default: false },
         front: { type: "string", default: process.env.MH_FRONT_DIR || "../mh-front" },
+        only: { type: "string" },
+        "add-missing": { type: "boolean", default: false },
     },
 });
 
@@ -63,6 +71,27 @@ const plan = [
     [M.MediaSlot, async () => (await load("media.js")).media],
     [M.SeoOverride, async () => (await load("seo.js")).seo],
 ];
+
+/** Mongo collection → mh-front cache tag (lib/api/*). Seeding writes straight to Mongo, bypassing the
+ *  admin routes, so the site has to be told here. Best effort: a stopped site just refreshes later. */
+const TAG = { heroslides: "hero", keynumbers: "home", centres: "home", talks: "home", stories: "home" };
+async function revalidateSite(collections) {
+    const url = process.env.SITE_REVALIDATE_URL;
+    const secret = process.env.REVALIDATE_SECRET;
+    if (!url || !secret) return console.log("ℹ SITE_REVALIDATE_URL not set — restart the site (or wait ≤ 1 h) to see the seeded data.");
+    const tags = [...new Set(collections.map((c) => TAG[c] ?? c))];
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "content-type": "application/json", "x-revalidate-secret": secret },
+            body: JSON.stringify({ tags }),
+            signal: AbortSignal.timeout(5000),
+        });
+        console.log(res.ok ? `✔ Site cache refreshed: ${tags.join(", ")}` : `⚠ Site refused the refresh (HTTP ${res.status}) — check REVALIDATE_SECRET.`);
+    } catch {
+        console.log("ℹ Site not reachable — it will show the seeded data after a restart (or within ≤ 1 h).");
+    }
+}
 
 function fail(msg) {
     console.error(`✖ ${msg}`);
@@ -135,8 +164,17 @@ function checkRefs(batches) {
     if (warn.length) console.warn(`⚠ Unresolved references (not fatal):\n  ${warn.join("\n  ")}`);
 }
 
+const only = args.only ? new Set(args.only.split(",").map((s) => s.trim()).filter(Boolean)) : null;
+if (only) {
+    const known = new Set(plan.map(([Model]) => Model.collection.name));
+    const unknown = [...only].filter((n) => !known.has(n));
+    if (unknown.length) fail(`Unknown collection(s) for --only: ${unknown.join(", ")}. Known: ${[...known].join(", ")}`);
+    plan.splice(0, plan.length, ...plan.filter(([Model]) => only.has(Model.collection.name)));
+}
+if (args["add-missing"] && args.drop) fail("--add-missing and --drop can't be combined.");
+
 const batches = await prepare();
-checkRefs(batches);
+if (!only) checkRefs(batches); // cross-collection refs need the whole data set
 if (args["dry-run"]) {
     for (const [Model, docs] of batches) console.log(`  ${Model.collection.name.padEnd(12)} ${docs.length}`);
     console.log("✔ Dry run: every document matches its model (nothing written)");
@@ -149,16 +187,27 @@ console.log(`Connected to ${mongoose.connection.name} · data from ${dataDir}`);
 try {
     const nonEmpty = [];
     for (const [Model] of batches) if (await Model.estimatedDocumentCount()) nonEmpty.push(Model.collection.name);
-    if (nonEmpty.length && !args.drop) fail(`Collections already have data: ${nonEmpty.join(", ")}. Re-run with --drop to replace them.`);
+    if (nonEmpty.length && !args.drop && !args["add-missing"])
+        fail(`Collections already have data: ${nonEmpty.join(", ")}. Re-run with --drop to replace them, or --add-missing to add only new entries.`);
 
     for (const [Model, docs] of batches) {
         if (args.drop) await Model.deleteMany({});
         await Model.syncIndexes();
+        let toInsert = docs;
+        if (args["add-missing"]) {
+            // the unique business key too (seo.path), so a path the marketer already created by hand is kept
+            const keys = Model === M.SeoOverride ? ["_id", "path"] : ["_id"];
+            const existing = await Model.find({ $or: keys.map((k) => ({ [k]: { $in: docs.map((d) => d[k]) } })) }, Object.fromEntries(keys.map((k) => [k, 1]))).lean();
+            const taken = new Set(existing.flatMap((e) => keys.map((k) => `${k}:${e[k]}`)));
+            toInsert = docs.filter((d) => !keys.some((k) => taken.has(`${k}:${d[k]}`)));
+        }
         // timestamps:false → keep the createdAt/updatedAt from the data files.
-        if (docs.length) await Model.insertMany(docs, { timestamps: false });
-        console.log(`  ${Model.collection.name.padEnd(12)} ${docs.length}`);
+        if (toInsert.length) await Model.insertMany(toInsert, { timestamps: false });
+        const skipped = docs.length - toInsert.length;
+        console.log(`  ${Model.collection.name.padEnd(12)} ${toInsert.length}${skipped ? ` added, ${skipped} already there (kept)` : ""}`);
     }
     console.log("✔ Seed complete");
+    await revalidateSite(batches.map(([Model]) => Model.collection.name));
 } finally {
     await mongoose.disconnect();
 }

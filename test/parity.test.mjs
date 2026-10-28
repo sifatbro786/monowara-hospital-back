@@ -193,7 +193,7 @@ const cases = [
     ["/aesthetic", { ...D.aesthetic, treatments: sorted(D.aesthetic.treatments), doctors: D.aesthetic.doctors.map((id) => docById.get(id)).filter(Boolean) }],
     ["/bhrpc", { ...D.bhrpc, doctors: D.bhrpc.doctors.map((id) => docById.get(id)).filter(Boolean) }],
     ["/media", active(D.media)],
-    ["/seo", active(D.seo)],
+    ["/seo", [...active(D.seo)].sort((a, b) => (a.path < b.path ? -1 : 1))], // API sorts by path
 ];
 for (const d of D.departments) cases.push([`/departments/${d.slug}`, bySlug(D.departments, d.slug)]);
 for (const d of D.facilities) cases.push([`/facilities/${d.slug}`, bySlug(D.facilities, d.slug)]);

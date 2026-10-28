@@ -9,7 +9,8 @@
  *                   messages, careers, FAQs
  *  graphics_design  site content: hero slider, homepage blocks, image slots, gallery, health tips &
  *                   news, patient stories, notice bar, content pages (About, Patients & Visitors…)
- *  marketer         SEO management (per-page Google title/description)
+ *  marketer         SEO management (per-page Google title/description) + health tips & news
+ *                   (articles — the main organic-search lever; client approved 2026-10-28)
  */
 export const ROLES = ["super_admin", "opd_incharge", "graphics_design", "marketer"];
 
@@ -40,7 +41,7 @@ const MAP = {
     "home.manage": GFX, // key numbers, centres, expert talks
     "media.manage": GFX, // image slots + uploads
     "gallery.manage": GFX,
-    "articles.manage": GFX, // health tips & news
+    "articles.manage": [...GFX, ...MKT], // health tips & news — graphics + marketer (client, 2026-10-28)
     "stories.manage": GFX, // consent confirmation required
     "notice.manage": GFX, // settings.noticeBar only
     "pages.manage": GFX, // About, Patients & Visitors, Management
